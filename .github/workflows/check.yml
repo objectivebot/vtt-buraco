@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -12,7 +14,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm run check
-      - run: git diff --exit-code -- dist/buraco.vtt
+      - run: unzip -t dist/buraco.vtt
       # Test against VTT's own migration and schema/routine validator.
       # The previous suite only checked our generator's internal assumptions.
       - uses: actions/checkout@v4
@@ -23,3 +25,23 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: upstream-vtt
       - run: node upstream-vtt/validator/validate_gamefile_node.js dist/buraco.json
+      - name: Load ZIP through VirtualTabletop server importer
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import FileLoader from "./server/fileloader.mjs";
+            const states = await FileLoader.readStatesFromBuffer(fs.readFileSync("../dist/buraco.vtt"));
+            if (states.VTT?.[0]?._meta?.info?.name !== "Buraco (manual table)") throw Error("VTT importer rejected Buraco state");
+            console.log("VirtualTabletop importer accepted", Object.keys(states.VTT[0]).length, "state entries");
+          '
+        working-directory: upstream-vtt
+      - name: Publish validated game archive
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- dist/buraco.vtt; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add dist/buraco.vtt
+            git commit -m 'build: publish validated Buraco VTT archive [skip ci]'
+            git push
+          fi
