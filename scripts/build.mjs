@@ -16,7 +16,10 @@ const board = {
       name: 'Buraco (manual table)',
       description: 'Flexible Buraco table for 2 or 4 players. Choose one or two 52-card decks when you start a hand. Private hands, two mortos, open melds and discard pile. Players enforce rules manually.',
       mode: 'vs',
-      players: '2-4',
+      image: '/i/cards-default/2B.svg',
+      bgg: 'https://boardgamegeek.com/boardgame/64431/buraco',
+      rules: 'https://www.pagat.com/rummy/buraco.html',
+      players: '2,4',
       time: '45',
       language: 'pt-BR',
       showName: true,
@@ -155,7 +158,9 @@ button('mortoBButton', 'Pegar morto B', 1375, 326, 197,
     { func: 'IF', operand1: '${mySeat}', operand2: 'seat4', thenRoutine: [{ func: 'MOVE', from: 'mortoB', to: '${mySeat}', count: 'all', face: 1 }] }
   ] }]));
 button('sortButton', 'Ordenar minha mão', 1300, 827, 265, [
-  { func: 'SORT', holder: '${seatID}', key: ['suit', 'rank'] }
+  { func: 'SELECT', property: 'parent', value: 'hand' },
+  { func: 'SELECT', source: 'DEFAULT', property: 'owner', value: '${playerName}' },
+  { func: 'SORT', collection: 'DEFAULT', key: 'cardType' }
 ]);
 
 const gameModes = [
@@ -218,6 +223,7 @@ function vttArchive(state) {
   local.writeUInt32LE(0x04034b50, 0); // Local file header
   local.writeUInt16LE(20, 4);
   local.writeUInt16LE(8, 8);         // DEFLATE
+  local.writeUInt16LE(33, 12);       // 1980-01-01, valid MS-DOS ZIP date
   local.writeUInt32LE(crc, 14);
   local.writeUInt32LE(compressed.length, 18);
   local.writeUInt32LE(original.length, 22);
@@ -227,6 +233,7 @@ function vttArchive(state) {
   central.writeUInt16LE(20, 4);
   central.writeUInt16LE(20, 6);
   central.writeUInt16LE(8, 10);
+  central.writeUInt16LE(33, 14);     // 1980-01-01
   central.writeUInt32LE(crc, 16);
   central.writeUInt32LE(compressed.length, 20);
   central.writeUInt32LE(original.length, 24);
