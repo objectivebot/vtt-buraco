@@ -35,6 +35,9 @@ jobs:
             console.log("VirtualTabletop importer accepted", Object.keys(states.VTT[0]).length, "state entries");
           '
         working-directory: upstream-vtt
+      - name: Simulate upload into a real VirtualTabletop room
+        working-directory: upstream-vtt
+        run: node ../tests/upstream-room-integration.mjs
       - name: Publish validated game archive
         if: github.event_name == 'push'
         run: |
