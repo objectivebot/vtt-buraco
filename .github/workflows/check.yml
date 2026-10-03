@@ -13,3 +13,13 @@ jobs:
           node-version: '22'
       - run: npm run check
       - run: git diff --exit-code -- dist/buraco.vtt
+      # Test against VTT's own migration and schema/routine validator.
+      # The previous suite only checked our generator's internal assumptions.
+      - uses: actions/checkout@v4
+        with:
+          repository: ArnoldSmith86/virtualtabletop
+          path: upstream-vtt
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+        working-directory: upstream-vtt
+      - run: node upstream-vtt/validator/validate_gamefile_node.js dist/buraco.json
