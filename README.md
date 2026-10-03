@@ -36,6 +36,22 @@ The hand widget uses VTT's `childrenPerOwner` feature; its contents are individu
 - Buttons to draw, pick up the entire discard pile and take your team's morto.
 - Node.js standard-library-only generator and static tests; a GitHub Actions workflow validates generated files.
 
+## Upload troubleshooting
+
+If the upload tile briefly appears and disappears, first click **Reset filters** or set
+Players, Language and Mode to **Any** and clear the search field. VirtualTabletop
+intentionally shows the temporary upload tile regardless of filters, while the
+permanent game tile obeys those filters. This game advertises exactly 2 or 4 players
+and Portuguese (`pt-BR`).
+
+If no game appears even with filters cleared, check the browser Network tab for the
+`addState/.../file/...` request and inspect its HTTP status and response. VTT's upload
+UI also removes the temporary tile after a failed request.
+
+The GitHub workflow checks ZIP integrity, runs VTT's **official game-file validator**,
+and passes the generated archive through VTT's **real server importer** before
+publishing the download.
+
 ## Limitations of this MVP
 
 - Manual turn-taking, card melding, scoring and win conditions. The morto button is **not** proof a player is eligible to take it.
