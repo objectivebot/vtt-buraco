@@ -14,7 +14,7 @@ const board = {
     version: 9,
     info: {
       name: 'Buraco (manual table)',
-      description: 'Flexible Buraco table for 2 or 4 players. Choose one or two 52-card decks when you start a hand. Private hands, two mortos, open melds and discard pile. Players enforce rules manually.',
+      description: 'Flexible Buraco table for 2 or 4 players. Choose one or two 52-card decks when you start a hand. Private hands, one morto with one deck or two mortos with two decks, open melds and discard pile. Players enforce rules manually.',
       mode: 'vs',
       image: '/i/cards-default/2B.svg',
       bgg: 'https://boardgamegeek.com/boardgame/64431/buraco',
@@ -49,7 +49,7 @@ function button(id, text, x, y, width, clickRoutine, extra = {}) {
 // Seats remain visible in both modes so four players can sit *before* starting a new hand.
 // Seat 1 / 3 = team A in four-player mode; seats 1 / 2 only in two-player mode.
 label('header', 'BURACO  •  MESA LIVRE', 465, 12, 640, { css: 'border:0;background:transparent;color:#f3f1db;font-size:35px;font-weight:bold;text-align:center;' });
-label('modeLabel', '2 jogadores • 1 baralho (J1 + J2)', 1015, 25, 360, { css: 'background:transparent;border:0;color:#ebdc9d;font-size:20px;text-align:center;' });
+label('modeLabel', '2 jogadores • 1 baralho • 1 morto', 1015, 25, 360, { css: 'background:transparent;border:0;color:#ebdc9d;font-size:20px;text-align:center;' });
 label('seatNotice', 'Ocupem os assentos antes de distribuir as cartas', 360, 65, 860, { css: 'background:transparent;border:0;color:#d7e8d6;font-size:18px;text-align:center;' });
 
 const seatJoinRoutine = [
@@ -96,13 +96,13 @@ for (const [team, y] of [['A', 164], ['B', 462]]) {
 holder('stock', 17, 643, 119, 170, { onEnter: { activeFace: 0 }, css: felt });
 holder('inactivePack', -1600, -1600, 119, 170, { css: 'background:transparent;border:0;' });
 holder('mortoA', 17, 217, 119, 170, { onEnter: { activeFace: 0 }, css: felt });
-holder('mortoB', 17, 411, 119, 170, { onEnter: { activeFace: 0 }, css: felt });
+holder('mortoB', 17, 411, 119, 170, { onEnter: { activeFace: 0 }, css: felt, display: false });
 holder('discard', 1411, 471, 119, 170, {
   onEnter: { activeFace: 1 }, stackOffsetY: 0, css: felt
 });
 label('stockLabel', 'COMPRA', 12, 603, 128, { css: 'background:transparent;border:0;color:white;font-size:20px;text-align:center;' });
-label('mortoALabel', 'MORTO A', 13, 181, 128, { css: 'background:transparent;border:0;color:white;font-size:20px;text-align:center;' });
-label('mortoBLabel', 'MORTO B', 13, 376, 128, { css: 'background:transparent;border:0;color:white;font-size:20px;text-align:center;' });
+label('mortoALabel', 'MORTO', 13, 181, 128, { css: 'background:transparent;border:0;color:white;font-size:20px;text-align:center;' });
+label('mortoBLabel', 'MORTO B', 13, 376, 128, { css: 'background:transparent;border:0;color:white;font-size:20px;text-align:center;', display: false });
 label('discardLabel', 'LIXO', 1411, 432, 119, { css: 'background:transparent;border:0;color:white;font-size:22px;text-align:center;' });
 
 const suits = [ ['clubs','C','♣'], ['diamonds','D','♦'], ['hearts','H','♥'], ['spades','S','♠'] ];
@@ -149,14 +149,21 @@ button('drawButton', 'Comprar 1 carta', 1375, 138, 197,
   onlyIfSeated([{ func: 'MOVE', from: 'stock', to: '${mySeat}', count: 1, face: 1 }]));
 button('discardButton', 'Pegar todo o lixo', 1375, 200, 197,
   onlyIfSeated([{ func: 'MOVE', from: 'discard', to: '${mySeat}', count: 'all', face: 1 }]));
-button('mortoAButton', 'Pegar morto A', 1375, 267, 197,
-  onlyIfSeated([{ func: 'IF', operand1: '${mySeat}', operand2: 'seat1', thenRoutine: [{ func: 'MOVE', from: 'mortoA', to: '${mySeat}', count: 'all', face: 1 }], elseRoutine: [
-    { func: 'IF', operand1: '${mySeat}', operand2: 'seat3', thenRoutine: [{ func: 'MOVE', from: 'mortoA', to: '${mySeat}', count: 'all', face: 1 }] }
-  ] }]));
+// In one-deck play either seated player can take the single shared morto.
+// With two decks each team can take only its own morto.
+button('mortoAButton', 'Pegar morto', 1375, 267, 197,
+  onlyIfSeated([{ func: 'IF', operand1: '${PROPERTY mode OF setupButton}', operand2: '2p1d',
+    thenRoutine: [{ func: 'MOVE', from: 'mortoA', to: '${mySeat}', count: 'all', face: 1 }],
+    elseRoutine: [
+      { func: 'IF', operand1: '${mySeat}', operand2: 'seat1', thenRoutine: [{ func: 'MOVE', from: 'mortoA', to: '${mySeat}', count: 'all', face: 1 }], elseRoutine: [
+        { func: 'IF', operand1: '${mySeat}', operand2: 'seat3', thenRoutine: [{ func: 'MOVE', from: 'mortoA', to: '${mySeat}', count: 'all', face: 1 }] }
+      ] }
+    ]
+  }]));
 button('mortoBButton', 'Pegar morto B', 1375, 326, 197,
   onlyIfSeated([{ func: 'IF', operand1: '${mySeat}', operand2: 'seat2', thenRoutine: [{ func: 'MOVE', from: 'mortoB', to: '${mySeat}', count: 'all', face: 1 }], elseRoutine: [
     { func: 'IF', operand1: '${mySeat}', operand2: 'seat4', thenRoutine: [{ func: 'MOVE', from: 'mortoB', to: '${mySeat}', count: 'all', face: 1 }] }
-  ] }]));
+  ] }]), { display: false });
 button('sortButton', 'Ordenar minha mão', 1300, 827, 265, [
   { func: 'SELECT', property: 'parent', value: 'hand' },
   { func: 'SELECT', source: 'DEFAULT', property: 'owner', value: '${playerName}' },
@@ -169,7 +176,7 @@ const gameModes = [
   { value: '4p2d', text: '4 jogadores — 2 baralhos' }
 ];
 // The deck count is not hardwired to player count; every *feasible* pairing is offered.
-// 4 players + 1 deck cannot supply 44 hand cards plus 22 morto cards.
+// 4 players + 1 deck cannot supply 44 hand cards plus even one 11-card morto.
 const setupRoutine = [
   { func: 'INPUT', header: 'Nova rodada / opções', fields: [
     { type: 'title', text: 'Atenção: as cartas atuais serão recolhidas!' },
@@ -185,7 +192,7 @@ const setupRoutine = [
   { func: 'IF', operand1: '${mode}', operand2: '2p1d', thenRoutine: [
     { func: 'SELECT', type: 'card', property: 'pack', value: 2 },
     { func: 'MOVE', collection: 'DEFAULT', to: 'inactivePack', count: 'all', face: 0 },
-    { func: 'LABEL', label: 'modeLabel', mode: 'set', value: '2 jogadores • 1 baralho (J1 + J2)' }
+    { func: 'LABEL', label: 'modeLabel', mode: 'set', value: '2 jogadores • 1 baralho • 1 morto' }
   ], elseRoutine: [
     { func: 'IF', operand1: '${mode}', operand2: '2p2d', thenRoutine: [
         { func: 'LABEL', label: 'modeLabel', mode: 'set', value: '2 jogadores • 2 baralhos (J1 + J2)' }
@@ -195,7 +202,20 @@ const setupRoutine = [
   ] },
   { func: 'SHUFFLE', holder: 'stock' },
   { func: 'MOVE', from: 'stock', to: 'mortoA', count: 11, face: 0 },
-  { func: 'MOVE', from: 'stock', to: 'mortoB', count: 11, face: 0 },
+  // Two-deck modes use a second morto. With one deck it is neither dealt nor shown.
+  { func: 'IF', operand1: '${mode}', operand2: '2p1d',
+    thenRoutine: [
+      { func: 'SET', collection: ['mortoB', 'mortoBLabel', 'mortoBButton'], property: 'display', value: false },
+      { func: 'SET', collection: ['mortoAButton'], property: 'text', value: 'Pegar morto' },
+      { func: 'LABEL', label: 'mortoALabel', mode: 'set', value: 'MORTO' }
+    ],
+    elseRoutine: [
+      { func: 'MOVE', from: 'stock', to: 'mortoB', count: 11, face: 0 },
+      { func: 'SET', collection: ['mortoB', 'mortoBLabel', 'mortoBButton'], property: 'display', value: true },
+      { func: 'SET', collection: ['mortoAButton'], property: 'text', value: 'Pegar morto A' },
+      { func: 'LABEL', label: 'mortoALabel', mode: 'set', value: 'MORTO A' }
+    ]
+  },
   { func: 'MOVE', from: 'stock', to: ['seat1', 'seat2'], count: 11, face: 1 },
   { func: 'IF', operand1: '${mode}', operand2: '4p2d', thenRoutine: [
     { func: 'MOVE', from: 'stock', to: ['seat3', 'seat4'], count: 11, face: 1 }

@@ -74,6 +74,9 @@ test('both teams have shared meld lanes, with independent mortos and discard', (
   assert.equal(byID('discard').onEnter.activeFace, 1);
   assert.equal(byID('mortoA').onEnter.activeFace, 0);
   assert.equal(byID('mortoB').onEnter.activeFace, 0);
+  assert.equal(byID('mortoB').display, false, 'one deck starts with second morto hidden');
+  assert.equal(byID('mortoBLabel').display, false);
+  assert.equal(byID('mortoBButton').display, false);
 });
 test('setup offers all feasible deck choices', () => {
   const field = byID('setupButton').clickRoutine[0].fields.find(x => x.variable === 'mode');
@@ -83,7 +86,16 @@ test('setup offers all feasible deck choices', () => {
   assert(setup.some(r => r.func === 'SHUFFLE' && r.holder === 'stock'));
   assert(setup.some(r => r.func === 'MOVE' && r.to === 'inactivePack' && r.count === 'all'));
   assert(setup.some(r => r.func === 'MOVE' && r.to === 'mortoA' && r.count === 11));
-  assert(setup.some(r => r.func === 'MOVE' && r.to === 'mortoB' && r.count === 11));
+  const conditionalMorto = setup.find(r => r.func === 'IF' && r.operand1 === '${mode}' &&
+    r.operand2 === '2p1d' && r.elseRoutine?.some(x => x.func === 'MOVE' && x.to === 'mortoB'));
+  assert(conditionalMorto, 'second morto must be dealt only in two-deck modes');
+  assert(!recursively(conditionalMorto.thenRoutine).some(x => x.func === 'MOVE' && x.to === 'mortoB'));
+  assert(conditionalMorto.elseRoutine.some(x => x.func === 'MOVE' && x.to === 'mortoB' && x.count === 11));
+  for (const display of [false, true]) {
+    const branch = display ? conditionalMorto.elseRoutine : conditionalMorto.thenRoutine;
+    assert(branch.some(x => x.func === 'SET' && x.property === 'display' && x.value === display &&
+      ['mortoB', 'mortoBLabel', 'mortoBButton'].every(id => x.collection?.includes(id))));
+  }
   assert(setup.some(r => r.func === 'MOVE' && Array.isArray(r.to) && r.to.includes('seat4')));
 });
 test('players can draw, pick discard, take mortos, and sort', () => {
@@ -91,8 +103,23 @@ test('players can draw, pick discard, take mortos, and sort', () => {
     assert(byID(id).clickRoutine.length > 0, `Missing button routine ${id}`);
   }
   assert(recursively(byID('mortoAButton').clickRoutine).some(x => x.func === 'MOVE' && x.from === 'mortoA'));
+  const oneDeckTake = recursively(byID('mortoAButton').clickRoutine).find(x =>
+    x.func === 'IF' && x.operand1 === '${PROPERTY mode OF setupButton}' && x.operand2 === '2p1d');
+  assert(oneDeckTake, 'either seated player must be able to take the shared morto in one-deck mode');
+  assert(oneDeckTake.thenRoutine.some(x => x.func === 'MOVE' && x.from === 'mortoA' && x.to === '${mySeat}'));
   assert(recursively(byID('mortoBButton').clickRoutine).some(x => x.func === 'MOVE' && x.from === 'mortoB'));
   const sorting = byID('sortButton').clickRoutine;
   assert(sorting.some(x => x.func === 'SELECT' && x.property === 'owner' && x.value === '${playerName}'));
   assert(sorting.some(x => x.func === 'SORT' && x.collection === 'DEFAULT'));
+});
+
+test('setup uses one morto with one deck and two with two decks', () => {
+  const configurations = [
+    { mode: '2p1d', deckCount: 1, players: 2, mortos: 1, stock: 19 },
+    { mode: '2p2d', deckCount: 2, players: 2, mortos: 2, stock: 60 },
+    { mode: '4p2d', deckCount: 2, players: 4, mortos: 2, stock: 38 }
+  ];
+  for (const { mode, deckCount, players, mortos, stock } of configurations) {
+    assert.equal(deckCount * 52 - players * 11 - mortos * 11, stock, mode);
+  }
 });

@@ -1,12 +1,20 @@
-name: Validate Buraco game
+name: Validate and publish Buraco
 on:
   push:
     branches: [main]
+    tags: ['**']
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: write
+# Avoid concurrent jobs replacing the same rolling main release.
+concurrency:
+  group: buraco-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  test:
+  build:
+    if: github.ref != 'refs/tags/main-build'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,8 +23,6 @@ jobs:
           node-version: '22'
       - run: npm run check
       - run: unzip -t dist/buraco.vtt
-      # Test against VTT's own migration and schema/routine validator.
-      # The previous suite only checked our generator's internal assumptions.
       - uses: actions/checkout@v4
         with:
           repository: ArnoldSmith86/virtualtabletop
@@ -26,25 +32,51 @@ jobs:
         working-directory: upstream-vtt
       - run: node upstream-vtt/validator/validate_gamefile_node.js dist/buraco.json
       - name: Load ZIP through VirtualTabletop server importer
+        working-directory: upstream-vtt
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
             import FileLoader from "./server/fileloader.mjs";
             const states = await FileLoader.readStatesFromBuffer(fs.readFileSync("../dist/buraco.vtt"));
-            if (states.VTT?.[0]?._meta?.info?.name !== "Buraco (manual table)") throw Error("VTT importer rejected Buraco state");
+            if (states.VTT?.[0]?._meta?.info?.name !== "Buraco (manual table)")
+              throw Error("VTT importer rejected Buraco state");
             console.log("VirtualTabletop importer accepted", Object.keys(states.VTT[0]).length, "state entries");
           '
-        working-directory: upstream-vtt
       - name: Simulate upload into a real VirtualTabletop room
         working-directory: upstream-vtt
         run: node ../tests/upstream-room-integration.mjs
-      - name: Publish validated game archive
-        if: github.event_name == 'push'
+      - name: Publish rolling main prerelease
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if ! git diff --quiet -- dist/buraco.vtt; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add dist/buraco.vtt
-            git commit -m 'build: publish validated Buraco VTT archive [skip ci]'
-            git push
+          set -euo pipefail
+          # Move a reserved release tag to the freshly validated main commit.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/main-build" >/dev/null 2>&1; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/main-build" \
+              -f sha="$GITHUB_SHA" -F force=true >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/main-build" -f sha="$GITHUB_SHA" >/dev/null
+          fi
+          if gh release view main-build >/dev/null 2>&1; then
+            gh release edit main-build --title "main (latest)" --prerelease \
+              --notes "Latest validated Buraco build from the main branch (commit $GITHUB_SHA)."
+            gh release upload main-build dist/buraco.vtt --clobber
+          else
+            gh release create main-build dist/buraco.vtt --verify-tag --prerelease \
+              --title "main (latest)" \
+              --notes "Latest validated Buraco build from the main branch (commit $GITHUB_SHA)."
+          fi
+      - name: Publish versioned release for pushed tag
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/buraco.vtt --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/buraco.vtt \
+              --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
           fi
