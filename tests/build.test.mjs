@@ -46,6 +46,10 @@ test('VTT export is a valid importable ZIP containing top-level 0.json', () => {
 test('self-contained, parseable VTT game state', () => {
   assert.equal(board._meta.version, 9);
   assert.equal(board._meta.info.name, 'Buraco (manual table)');
+  assert.equal(board._meta.info.players, '2,4');
+  assert.match(board._meta.info.image, /^\/i\//);
+  assert.match(board._meta.info.bgg, /^https:\/\/boardgamegeek.com\/boardgame\//);
+  assert.equal(archive.readUInt16LE(12), 33, 'valid DOS date in ZIP local header');
   assert.equal(new Set(Object.keys(board)).size, Object.keys(board).length);
 });
 test('two distinct 52-card packs, no jokers', () => {
@@ -88,4 +92,7 @@ test('players can draw, pick discard, take mortos, and sort', () => {
   }
   assert(recursively(byID('mortoAButton').clickRoutine).some(x => x.func === 'MOVE' && x.from === 'mortoA'));
   assert(recursively(byID('mortoBButton').clickRoutine).some(x => x.func === 'MOVE' && x.from === 'mortoB'));
+  const sorting = byID('sortButton').clickRoutine;
+  assert(sorting.some(x => x.func === 'SELECT' && x.property === 'owner' && x.value === '${playerName}'));
+  assert(sorting.some(x => x.func === 'SORT' && x.collection === 'DEFAULT'));
 });
