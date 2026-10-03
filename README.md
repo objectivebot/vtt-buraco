@@ -44,13 +44,22 @@ intentionally shows the temporary upload tile regardless of filters, while the
 permanent game tile obeys those filters. This game advertises exactly 2 or 4 players
 and Portuguese (`pt-BR`).
 
-If no game appears even with filters cleared, check the browser Network tab for the
-`addState/.../file/...` request and inspect its HTTP status and response. VTT's upload
-UI also removes the temporary tile after a failed request.
+If no game appears even with filters cleared, bypass file upload using **Add game
+→ Add link**, entering this direct link to the latest validated archive:
+
+https://raw.githubusercontent.com/objectivebot/vtt-buraco/main/dist/buraco.vtt
+
+This also means the game can follow newer published versions. If the link route fails
+too, open browser Developer Tools → Network, enable **Preserve log**, and retry the
+file upload. Select the `PUT addState/.../file/...` request and collect its **HTTP
+status and Response tab**. VTT's client removes the temporary tile after any HTTP
+response, successful or not. An HTTP 200 with no permanent game tile points toward
+game-shelf metadata delivery or a browser rendering problem, rather than the ZIP.
 
 The GitHub workflow checks ZIP integrity, runs VTT's **official game-file validator**,
-and passes the generated archive through VTT's **real server importer** before
-publishing the download.
+passes the archive through the **real server importer**, and additionally calls
+`Room.addState()` to verify that the server retains the game and broadcasts the
+updated game shelf. These checks cannot verify the hosted server or browser.
 
 ## Limitations of this MVP
 
