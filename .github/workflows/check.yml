@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '18'
       - run: npm run check
       - run: unzip -t dist/buraco.vtt && unzip -t dist/m0-probe.vtt
       - uses: actions/checkout@v4

@@ -1,10 +1,11 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { ClientFunction, Selector } from 'testcafe';
 import { prepareClient, getStateObject, setRoomState, roomURL, setupTestEnvironment } from './test-util.js';
 import { openRoom, dragPath, stateWhen } from './interaction-util.js';
 
 setupTestEnvironment();
-const probe=JSON.parse(fs.readFileSync(new URL('../../../dist/m0-probe.json',import.meta.url)));
+const probe=JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '../dist/m0-probe.json')));
 delete probe._meta;
 const storeName=ClientFunction(name=>localStorage.setItem('playerName',name));
 async function namedClient(t,name){
