@@ -83,7 +83,8 @@ export function buildM0Probe() {
     clickRoutine: [
       { func: 'SET', collection: ['probeGate'], property: 'gate', value: 'closed' },
       { func: 'SET', collection: ['probeGate'], property: 'gateOwner', value: '' },
-      { func: 'MOVE', from: [ 'probeCard' ], to: origin, count: 1, face: 1 },
+      { func: 'SELECT', property: 'id', value: 'probeCard' },
+      { func: 'MOVE', collection: 'DEFAULT', to: origin, count: 1, face: 1 },
       { func: 'LABEL', label: 'probeStatus', mode: 'set', value: 'Teste reiniciado' }
     ]
   });
