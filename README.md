@@ -73,7 +73,8 @@ updated game shelf. These checks cannot verify the hosted server or browser.
 Requires Node.js 18+; no `npm install` needed.
 
 ```bash
-npm run check  # rebuild JSON and run tests
+npm run check         # build both .vtt files and run all local tests
+npm run build:probe   # build the isolated M0 event/reversion test table
 npm run build  # update dist/buraco.vtt (ZIP) and dist/buraco.json (editable state)
 ```
 
@@ -81,12 +82,13 @@ The VTT state is generated from `scripts/build.mjs` for reviewable changes. `dis
 
 ## Published downloads (GitHub Releases)
 
-The generated ZIP is **not committed**. After tests and validation against the upstream VirtualTabletop importer, GitHub Actions publishes the archive:
+The generated ZIP files are **not committed**. After tests and validation against the upstream VirtualTabletop importer, GitHub Actions publishes the archive:
 
-- Every push to `main` updates the rolling prerelease titled **main (latest)** at the reserved tag `main-build`: [download the latest main build](https://github.com/objectivebot/vtt-buraco/releases/download/main-build/buraco.vtt).
+- The M0 proof is documented in [docs/M0.md](docs/M0.md) and its [test table](https://github.com/objectivebot/vtt-buraco/releases/download/main-build/m0-probe.vtt) ships alongside Buraco.
+- Every push to `main` updates the rolling prerelease titled **main (latest)** at the stable release URL `main-build`: [download the latest main build](https://github.com/objectivebot/vtt-buraco/releases/download/main-build/buraco.vtt).
 - Pushing **any other tag** (for example, `v0.2.0`) builds that exact commit and publishes a separate release for it. These tagged releases are preserved and are not automatically replaced by later main builds.
 
-The permanent `main-build` URL can be pasted into VirtualTabletop's **Add game → Add link** to follow the current validated build. To create a versioned release, run `git tag v0.2.0 && git push origin v0.2.0` after committing your changes.
+The release tag itself is only a stable anchor; its attached asset is refreshed with every validated main build. The permanent `main-build` URL can be pasted into VirtualTabletop's **Add game → Add link** to follow the current validated build. To create a versioned release, run `git tag v0.2.0 && git push origin v0.2.0` after committing your changes.
 
 ## Potential follow-ups
 

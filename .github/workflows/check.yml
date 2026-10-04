@@ -80,20 +80,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Move a reserved release tag to the freshly validated main commit.
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/main-build" >/dev/null 2>&1; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/main-build" \
-              -f sha="$GITHUB_SHA" -F force=true >/dev/null
-          else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
-              -f ref="refs/tags/main-build" -f sha="$GITHUB_SHA" >/dev/null
-          fi
+          # The stable main-build release URL always serves the latest validated
+          # archive. Do not force-update an existing release tag: GITHUB_TOKEN
+          # may be unable to move it on protected repositories.
           if gh release view main-build >/dev/null 2>&1; then
             gh release edit main-build --title "main (latest)" --prerelease \
               --notes "Latest validated Buraco build from the main branch (commit $GITHUB_SHA)."
             gh release upload main-build dist/buraco.vtt dist/m0-probe.vtt --clobber
           else
-            gh release create main-build dist/buraco.vtt dist/m0-probe.vtt --verify-tag --prerelease \
+            gh release create main-build dist/buraco.vtt dist/m0-probe.vtt --target main --prerelease \
               --title "main (latest)" \
               --notes "Latest validated Buraco build from the main branch (commit $GITHUB_SHA)."
           fi
