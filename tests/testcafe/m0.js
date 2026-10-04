@@ -15,6 +15,7 @@ async function namedClient(t,name){
 }
 test('M0: locally reject invalid drop and allow a single authorized move', async t=>{
   await storeName('Alice');
+  await t.navigateTo(roomURL());
   await openRoom(t,'modern',{...probe,probeSeat1:{...probe.probeSeat1,player:'Alice'},probeSeat2:{...probe.probeSeat2,player:'Bob'}});
   await dragPath(t,'probeCard',[{onto:'probeTarget'}]);
   const rejected=await stateWhen(s=>s.probeStatus?.text?.startsWith('Rejeitado pelo cliente'));
@@ -31,6 +32,7 @@ test('M0: locally reject invalid drop and allow a single authorized move', async
 });
 test('M0: two browser windows converge and reconnect after accepted move', async t=>{
   await storeName('Alice');
+  await t.navigateTo(roomURL());
   await openRoom(t,'modern',{...probe,probeSeat1:{...probe.probeSeat1,player:'Alice'},probeSeat2:{...probe.probeSeat2,player:'Bob'}});
   const first=await t.getCurrentWindow();
   const second=await t.openWindow(roomURL());
